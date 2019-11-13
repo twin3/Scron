@@ -1,0 +1,29 @@
+{
+    "name": "scron",
+    "version": "1.0.0",
+    "description": "Scron is a simple light-weight JS library providing Cron-like scheduling date formatting. It works by calculating a schedules next run time based on a provided format string.",
+    "main": "scron.min.js",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/twin3/Scron"
+    },
+    "scripts": {
+        "test": "jest",
+        "minify": "uglifyjs ./libs/scron.js -c -m -o ./libs/scron.min.js"
+    },
+    "author": "Neil Palethorpe <neil.palethorpe@twin3.co.uk> (https://twin3.co.uk)",
+    "contributors": [
+        "Neil Palethorpe <neil.palethorpe@twin3.co.uk> (https://twin3.co.uk)"
+    ],
+    "license": "MIT",
+    "devDependencies": {
+        "@babel/cli": "^7.6.4",
+        "@babel/core": "^7.6.4",
+        "@babel/plugin-proposal-class-properties": "^7.5.5",
+        "@babel/preset-env": "^7.6.3",
+        "babel-jest": "^24.9.0",
+        "babel-minify": "^0.5.1",
+        "jest": "^24.9.0",
+        "uglify-es": "^3.3.9"
+    }
+}
