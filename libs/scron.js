@@ -67,7 +67,27 @@ export default class Scron {
             en:"ET",    // End Time
             mr:"MR"     // Max Runs
         }
-        this.update(formatString || "");
+
+        // We need to understand what type of format this is - so lets remove all known formula values and see
+        // what we have left
+        let _typeCheck = formatString || "";
+        this.DAYS.map((item) => { _typeCheck = _typeCheck.replace(new RegExp("(" + item.join("|") + ")", "gi"), ""); });
+        this.MONTHS.map((item) => { _typeCheck = _typeCheck.replace(new RegExp(item.join("|"), "gi"), ""); });
+        _typeCheck = _typeCheck.replace(/\d|\*|,|-| |L/g, "");
+        
+        // Check if we're using a description or formula
+        if (_typeCheck.match(new RegExp(/\w|:/,"gi"))!==null){
+            
+            // Found letters in the string, as the scron formula doesn't allow letters lets go ahead
+            // and presume its a description string
+            this.updateFromDescription(formatString || "");
+
+        } else {
+
+            // Always resort to presuming its a regular scron formula
+            this.updateFromFormula(formatString || "");
+
+        }
     }    
     
 
@@ -387,12 +407,8 @@ export default class Scron {
         return splitFormat.join("");
     }
 
-
-    // Update the Scron format string
-    update(formatString){
-        this.formatString = formatString;
-
-        // Add in our default params
+    // Build up a collection of default parameters ready to be populated with actual values
+    setupDefaultParams(){
         this.params = {};
         this.params[this.KEY.ms] = { index:0, original:"", default:[], value:[], strRange:"0-999", type:'range' };
         this.params[this.KEY.s] = { index:1, original:"", default:[], value:[], strRange:"0-59", type:'range' };
@@ -404,6 +420,353 @@ export default class Scron {
         this.params[this.KEY.st] = { index:7, original:"", default:null, value:null, type:'date' };
         this.params[this.KEY.en] = { index:8, original:"", default:null, value:null, type:'date' };
         this.params[this.KEY.mr] = { index:8, original:"", default:null, value:null, type:'int' };
+
+        // Add in our default values for each param
+        for(let key in this.params){
+            if (this.params[key].type==='range'){
+                this.params[key].default = this.getIntRange(this.params[key].strRange);
+            }
+        }
+
+    }
+
+    // Update the Scron using a provided description, this will analyse the description and
+    // output Scron formula for using.
+    updateFromDescription(formatString){
+        this.formatString = formatString;
+        const _regMs = "()"
+        let _fString = formatString;
+
+        // Setup default params object
+        this.setupDefaultParams();
+
+        // Run some basic conditioning on the string first
+        _fString = _fString.replace(/  /," ");
+
+        const _joins = "and|&|nd|then";
+        const _ordinals = "th|st|rd|nd";
+        const _targets = "reach(es|s|'s)?|achieve(s|'s)?|land(s)?[ ](on|at|around)";
+        const _months = "january|jan|february|feb|march|mar|april|apr|may|june|jun|july|jul|august|aug|september|sept|sep|october|oct|november|nov|december|dec";
+        const _days = "sunday|sun|monday|mon|tuesday|tue|wednesday|wed|thursday|thur|friday|fri|saturday|sat";
+
+        // Convert a date string into a date
+        const dateDescToDate = (dateDesc) => {
+            /*
+            starting on 30th jan 2019
+            from 30th jan
+            beginning 30 january
+            starts January 3rd
+            starting on Jan 4 2018
+            starts 010119
+            starts 01012020
+            starting from 01 01 2019
+            */
+           const _dateArr = dateDesc.split(" ").map((item) => {
+               return new Date();
+           }).filter((item) => {  });
+        }
+
+        // (((from|start|begin[n]?)(s|ing)?([ ](on|from))?([ ]((\d{1,2}(th|st|rd|nd)?[ ]?(of)?[ ]?)((\d{1,2})|january|jan)[ ]?(\d{1,4})?))))
+        // Setup a collection of search values to find all the ways we can represent a specific value
+        const searchValues = [
+
+            // Max Runs
+            {
+                reg:`((run(s)?)?[ ]?([1-9][0-9]{0,5}|1000000)[ ]((time|run)(s)?))`, 
+                paramsKey:this.KEY.mr,
+                get:(val) => { return [val.replace(/[^\d]/gi, "")] }
+            },
+
+            // Start Date
+            {
+                reg:`(((from|start|begin[n]?)(s|ing)?([ ](on|from))?([ ]((\d{1,2}(${_ordinals})?[ ]?(of)?[ ]?)?((\d{1,2})|${_months})[ ]?(\d{1,2}(${_ordinals})?[ ]?(of)?[ ]?)?[ ]?(\d{1,4})?))))`, 
+                paramsKey:this.KEY.st,
+                get:(val) => { return dateDescToDate(val); }
+            },
+
+
+            // Milliseconds
+            {
+                reg:`(every|all|each|\\*)[ ]?(ms|mil(li[ ]?second(')?(s)?)?)`, 
+                paramsKey:this.KEY.ms,
+                get:(val) => { return "*" }
+            },  // All milliseconds
+            { 
+                reg:`(((\\d{1,3})(${_ordinals})?[ ]?)|(((\\d{1,3})(${_ordinals})?[,]?[ ]((${_joins})[ ])?)+[ ]?((\\d{1,3})(${_ordinals})?[ ]?)))(ms|mil(li[ ]?second(')?(s)?)?)`, 
+                paramsKey:this.KEY.ms,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },  // 30 ms | 30 12 and 800 milliseconds | 8 & 40mil
+            {
+                reg:`(ms|mil(li[ ]?second(')?(s)?)?)[ ](${_targets})?[ ]?(((\\d{1,3}(${_ordinals})?[,]?[ ]((${_joins})[ ])?)+[ ]?(\\d{1,3}(${_ordinals})?))|(\\d{1,3}(${_ordinals})?))`, 
+                paramsKey:this.KEY.ms,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },  // ms 34
+            {
+                reg:`\\d{2}:\\d{2}:\\d{2}[:|.]\\d{1,3}`, 
+                paramsKey:this.KEY.ms,
+                get:(val) => { return [val.replace(/[^\d\s\:\.]/gi, "").replace(/\./gi, ":").split(":")[3]] }
+            },  // 13:55:84.844 | 13:55:84:844
+            
+            
+            // Seconds
+            {
+                reg:`(every|all|each|\\*)[ ]?(sec(ond)?(')?s?)`, 
+                paramsKey:this.KEY.s,
+                get:(val) => { return "*" }
+            },  // All seconds
+            { 
+                reg:`((([1-5][0-9]|[0-9])(${_ordinals})?[ ]?)|((([1-5][0-9]|[0-9])(${_ordinals})?[,]?[ ]((${_joins})[ ])?)+[ ]?(([1-5][0-9]|[0-9])(${_ordinals})?[ ]?)))(sec(ond)?(')?s?)`, 
+                paramsKey:this.KEY.s,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },  // 30 s | 30 12 and 40 seconds | 8 & 40sec
+            {
+                reg:`([^i]sec(ond)?(')?s?)[ ](${_targets})?[ ]?(((([1-5][0-9]|[0-9])(${_ordinals})?[,]?[ ](${_joins})?)+[ ]?(([1-5][0-9]|[0-9])(${_ordinals})?))|(([1-5][0-9]|[0-9])(${_ordinals})?))`, 
+                paramsKey:this.KEY.s,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },  // seconds 34
+            {
+                reg:`\\d{2}:\\d{2}:\\d{2}([:|.]\\d{1,3})?`, 
+                paramsKey:this.KEY.s,
+                get:(val) => { return [val.replace(/[^\d\s\:\.]/gi, "").replace(/\./gi, ":").split(":")[2]] }
+            },  // 13:55:84.844 | 13:55:84:844
+
+            
+            // Minutes
+            {
+                reg:`(every|all|each|\\*)[ ]?(min(ute)?s?)`, 
+                paramsKey:this.KEY.m,
+                get:(val) => { return "*" }
+            },  // All minutes
+            { 
+                reg:`((([1-5][0-9]|[0-9])(${_ordinals})?[ ]?)|((([1-5][0-9]|[0-9])(${_ordinals})?[,]?[ ]((${_joins})[ ])?)+[ ]?(([1-5][0-9]|[0-9])(${_ordinals})?[ ]?)))(min(ute)?(')?s?)`, 
+                paramsKey:this.KEY.m,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },  // 30 12 and 40 minutes | 8 & 15 mins
+            {
+                reg:`(min(ute)?(')?s?)[ ](${_targets})?[ ]?(((([1-5][0-9]|[0-9])(${_ordinals})?[,]?[ ](${_joins})?)+[ ]?(([1-5][0-9]|[0-9])(${_ordinals})?))|(([1-5][0-9]|[0-9])(${_ordinals})?))`, 
+                paramsKey:this.KEY.m,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },  // minutes 34
+            {
+                reg:`\\d{2}:\\d{2}(:\\d{2}([:|.]\\d{1,3})?)?`, 
+                paramsKey:this.KEY.m,
+                get:(val) => { return [val.replace(/[^\d\s\:\.]/gi, "").replace(/\./gi, ":").split(":")[1]] }
+            },  // 13:55:84.844 | 13:55:84:844
+
+
+            // Hour
+            {
+                reg:`(every|all|each|\\*)[ ]?(hour(')?(s)?)`, 
+                paramsKey:this.KEY.h,
+                get:(val) => { return "*" }
+            },
+            { 
+                reg:`(((2[0-3]|1[0-9]|[0-9])(${_ordinals})?[ ]?)|(((2[0-3]|1[0-9]|[0-9])(${_ordinals})?[,]?[ ]((${_joins})[ ])?)+[ ]?((2[0-3]|1[0-9]|[0-9])(${_ordinals})?[ ]?)))(hour(')?(s)?)`, 
+                paramsKey:this.KEY.h,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },
+            {
+                reg:`(hour(')?(s)?)[ ](${_targets})?[ ]?((((2[0-3]|1[0-9]|[0-9])(${_ordinals})?[,]?[ ](${_joins})?)+[ ]?((2[0-3]|1[0-9]|[0-9])(${_ordinals})?))|((2[0-3]|1[0-9]|[0-9])(${_ordinals})?))`, 
+                paramsKey:this.KEY.h,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },
+            {
+                reg:`[ ]((2[0-3]|[0-1][0-9]|[0-9])[ ]?(am|pm))`, 
+                paramsKey:this.KEY.h,
+                get:(val) => { 
+                    const _time = Number(val.replace(/[^\d]/gi, ""));
+                    if (val.toLowerCase().indexOf("am")>-1){
+                        return [_time];
+                    } else {
+                        return [_time===12 ? 0 : _time < 12 ? _time+12 : _time];
+                    }
+                }
+            },
+            {
+                reg:`\\d{2}:\\d{2}(:\\d{2}([:|.]\\d{1,3})?)?`, 
+                paramsKey:this.KEY.h,
+                get:(val) => { return [val.replace(/[^\d\s\:\.]/gi, "").replace(/\./gi, ":").split(":")[0]] }
+            },
+
+
+            // Date of Month
+            {
+                reg:`(every|all|each|\\*)[ ]((month[ ](day|date)?(')?(s)?)|(day|date)(')?(s)?[ ](of|in)[ ](the|a)?[ ]month)`, 
+                paramsKey:this.KEY.dom,
+                get:(val) => { return "*" }
+            },
+            {
+                reg:`(((3[0-1]|[1-2][0-9]|[0-9])(${_ordinals})?[,]?[ ]((${_joins})[ ])?)+(of[ ])?(the[ ])?(date|month|${_months}))|(((date|day|${_months})(')?(s)?)[ ]((3[0-1]|[1-2][0-9]|[0-9])(${_ordinals})?[,]?[ ]?((${_joins})[ ])?)+)`,
+                paramsKey:this.KEY.dom,
+                get:(val) => { return val.replace(/[^\d\s]/gi, "").split(" ").map((val) => { return val.trim() }).filter((val) => { return !!val && val!=='' }) }
+            },
+
+
+            // Month
+            {
+                reg:`(every|all|each|\\*)[ ]month(')?(s)?`, 
+                paramsKey:this.KEY.mo,
+                get:(val) => { return "*" }
+            },
+            {
+                reg:`\\b(${_months})\\b`,
+                paramsKey:this.KEY.mo,
+                get:(val) => {
+                    for(let i=0; i<this.MONTHS.length; i++){
+                        for(let m=0; m<this.MONTHS[i].length; m++){
+                            if (val.toLowerCase()===this.MONTHS[i][m].toLowerCase()){
+                                return [i+1];
+                            }
+                        }
+                    }
+                    return [];
+                }
+            },
+
+
+            // Day of Week
+            {
+                reg:`(every|all|each|\\*)[ ]?week[ ]?day(')?(s)?`, 
+                paramsKey:this.KEY.dow,
+                get:(val) => { return "*" }
+            },
+            {
+                reg:`\\b(${_days})\\b`,
+                paramsKey:this.KEY.dow,
+                get:(val) => {
+                    for(let i=0; i<this.DAYS.length; i++){
+                        for(let d=0; d<this.DAYS[i].length; d++){
+                            if (val.toLowerCase()===this.DAYS[i][d].toLowerCase()){
+                                return [i];
+                            }
+                        }
+                    }
+                    console.log("Day Nope");
+                    return [];
+                }
+            },
+            
+            
+        ]
+        
+        // Run through each of our search values and pick out the relevant data to put in our parameters
+        for (let i=0; i<searchValues.length; i++){
+            const search = searchValues[i];
+            const regex = new RegExp(search.reg, "gi");
+            const found = _fString.match(regex);
+            let valArr = [];
+            
+            // Check to see if we've found this value in our format string
+            if (found!==null && found.length>0){
+
+                // Loop over each found item - in the most case we should only really have a single found
+                // item per search value - however they could have said like "200th millisecond and the 500th millisecond"
+                for (let f=0; f<found.length; f++){
+                    
+                    // Add our found values into the correct parameter
+                    switch(this.params[search.paramsKey].type){
+                        case 'range':
+                            valArr = search.get(found[f]);
+                            if(valArr==="*"){
+                                this.params[search.paramsKey].value = this.getRange("*", this.params[search.paramsKey].default);
+                            } else {
+                                for(let v=0; v<valArr.length; v++){
+                                    this.params[search.paramsKey].value.push(valArr[v]);
+                                }
+                            }
+                            break;
+                        case 'date':
+                            break;
+                        case 'int':
+                            valArr = search.get(found[f]);
+                            this.params[search.paramsKey].value = Number(valArr[0]);
+                            break;
+                    }
+
+                    // Make sure we remove these values from our format string so we don't keep finding the same values
+                    _fString = _fString.replace(regex, "");
+
+                }
+                
+            }
+
+            // Exit out if there is nothing more in our format string
+            if (_fString.trim().length<=0){
+                break;
+            }
+
+        }
+
+        // Loop through our range parameters and update any who didn't get a mention
+        if (this.params[this.KEY.ms].value.length>0){
+            this.params[this.KEY.s].value = this.params[this.KEY.s].value.length>0 ? this.params[this.KEY.s].value : this.params[this.KEY.s].default;
+            this.params[this.KEY.m].value = this.params[this.KEY.m].value.length>0 ? this.params[this.KEY.m].value : this.params[this.KEY.m].default;
+            this.params[this.KEY.h].value = this.params[this.KEY.h].value.length>0 ? this.params[this.KEY.h].value : this.params[this.KEY.h].default;
+            this.params[this.KEY.dom].value = this.params[this.KEY.dom].value.length>0 ? this.params[this.KEY.dom].value : this.params[this.KEY.dom].default;
+            this.params[this.KEY.mo].value = this.params[this.KEY.mo].value.length>0 ? this.params[this.KEY.mo].value : this.params[this.KEY.mo].default;
+            this.params[this.KEY.dow].value = this.params[this.KEY.dow].value.length>0 ? this.params[this.KEY.dow].value : this.params[this.KEY.dow].default;
+        } else if (this.params[this.KEY.s].value.length>0){
+            this.params[this.KEY.ms].value = this.params[this.KEY.ms].value.length>0 ? this.params[this.KEY.ms].value : [0];
+            this.params[this.KEY.m].value = this.params[this.KEY.m].value.length>0 ? this.params[this.KEY.m].value : this.params[this.KEY.m].default;
+            this.params[this.KEY.h].value = this.params[this.KEY.h].value.length>0 ? this.params[this.KEY.h].value : this.params[this.KEY.h].default;
+            this.params[this.KEY.dom].value = this.params[this.KEY.dom].value.length>0 ? this.params[this.KEY.dom].value : this.params[this.KEY.dom].default;
+            this.params[this.KEY.mo].value = this.params[this.KEY.mo].value.length>0 ? this.params[this.KEY.mo].value : this.params[this.KEY.mo].default;
+            this.params[this.KEY.dow].value = this.params[this.KEY.dow].value.length>0 ? this.params[this.KEY.dow].value : this.params[this.KEY.dow].default;
+        } else if (this.params[this.KEY.m].value.length>0){
+            this.params[this.KEY.ms].value = this.params[this.KEY.ms].value.length>0 ? this.params[this.KEY.ms].value : [0];
+            this.params[this.KEY.s].value = this.params[this.KEY.s].value.length>0 ? this.params[this.KEY.s].value : [0];
+            this.params[this.KEY.h].value = this.params[this.KEY.h].value.length>0 ? this.params[this.KEY.h].value : this.params[this.KEY.h].default;
+            this.params[this.KEY.dom].value = this.params[this.KEY.dom].value.length>0 ? this.params[this.KEY.dom].value : this.params[this.KEY.dom].default;
+            this.params[this.KEY.mo].value = this.params[this.KEY.mo].value.length>0 ? this.params[this.KEY.mo].value : this.params[this.KEY.mo].default;
+            this.params[this.KEY.dow].value = this.params[this.KEY.dow].value.length>0 ? this.params[this.KEY.dow].value : this.params[this.KEY.dow].default;
+        } else if (this.params[this.KEY.h].value.length>0){
+            this.params[this.KEY.ms].value = this.params[this.KEY.ms].value.length>0 ? this.params[this.KEY.ms].value : [0];
+            this.params[this.KEY.s].value = this.params[this.KEY.s].value.length>0 ? this.params[this.KEY.s].value : [0];
+            this.params[this.KEY.m].value = this.params[this.KEY.m].value.length>0 ? this.params[this.KEY.m].value : [0];
+            this.params[this.KEY.dom].value = this.params[this.KEY.dom].value.length>0 ? this.params[this.KEY.dom].value : this.params[this.KEY.dom].default;
+            this.params[this.KEY.mo].value = this.params[this.KEY.mo].value.length>0 ? this.params[this.KEY.mo].value : this.params[this.KEY.mo].default;
+            this.params[this.KEY.dow].value = this.params[this.KEY.dow].value.length>0 ? this.params[this.KEY.dow].value : this.params[this.KEY.dow].default;
+        } else if (this.params[this.KEY.dom].value.length>0){
+            this.params[this.KEY.ms].value = this.params[this.KEY.ms].value.length>0 ? this.params[this.KEY.ms].value : [0];
+            this.params[this.KEY.s].value = this.params[this.KEY.s].value.length>0 ? this.params[this.KEY.s].value : [0];
+            this.params[this.KEY.m].value = this.params[this.KEY.m].value.length>0 ? this.params[this.KEY.m].value : [0];
+            this.params[this.KEY.h].value = this.params[this.KEY.h].value.length>0 ? this.params[this.KEY.h].value : [0];
+            this.params[this.KEY.mo].value = this.params[this.KEY.mo].value.length>0 ? this.params[this.KEY.mo].value : this.params[this.KEY.mo].default;
+            this.params[this.KEY.dow].value = this.params[this.KEY.dow].value.length>0 ? this.params[this.KEY.dow].value : this.params[this.KEY.dow].default;
+        } else if (this.params[this.KEY.mo].value.length>0){
+            this.params[this.KEY.ms].value = this.params[this.KEY.ms].value.length>0 ? this.params[this.KEY.ms].value : [0];
+            this.params[this.KEY.s].value = this.params[this.KEY.s].value.length>0 ? this.params[this.KEY.s].value : [0];
+            this.params[this.KEY.m].value = this.params[this.KEY.m].value.length>0 ? this.params[this.KEY.m].value : [0];
+            this.params[this.KEY.h].value = this.params[this.KEY.h].value.length>0 ? this.params[this.KEY.h].value : [0];
+            this.params[this.KEY.dom].value = this.params[this.KEY.dom].value.length>0 ? this.params[this.KEY.dom].value : [1];
+            this.params[this.KEY.dow].value = this.params[this.KEY.dow].value.length>0 ? this.params[this.KEY.dow].value : this.params[this.KEY.dow].default;
+        } else if (this.params[this.KEY.dow].value.length>0){
+            this.params[this.KEY.ms].value = this.params[this.KEY.ms].value.length>0 ? this.params[this.KEY.ms].value : [0];
+            this.params[this.KEY.s].value = this.params[this.KEY.s].value.length>0 ? this.params[this.KEY.s].value : [0];
+            this.params[this.KEY.m].value = this.params[this.KEY.m].value.length>0 ? this.params[this.KEY.m].value : [0];
+            this.params[this.KEY.h].value = this.params[this.KEY.h].value.length>0 ? this.params[this.KEY.h].value : [0];
+            this.params[this.KEY.dom].value = this.params[this.KEY.dom].value.length>0 ? this.params[this.KEY.dom].value : [1];
+            this.params[this.KEY.mo].value = this.params[this.KEY.mo].value.length>0 ? this.params[this.KEY.mo].value : this.params[this.KEY.mo].default;
+        }
+
+        // Check to make sure a start date was provided - if there isn't then we'll just use now as a start
+        if (this.params[this.KEY.mr].value!==null&&this.params[this.KEY.st].value===null){
+            const _startDate = new Date();
+            this.params[this.KEY.st].original = `${("00" + _startDate.getDate().toString()).slice(-2)}${("00" + (_startDate.getMonth()+1).toString()).slice(-2)}${_startDate.getFullYear()}`;
+            this.params[this.KEY.st].value = _startDate;
+        }
+
+        // Run the validate now
+        this.validateResult = this.validateFormula();
+
+    }
+
+    // Update the Scron format string
+    updateFromFormula(formatString){
+        this.formatString = formatString;
+
+        // Setup default params object
+        this.setupDefaultParams();
         
         // Replace all iterations of string values for the months
         for(let i=0; i<this.MONTHS.length; i++){
@@ -425,7 +788,6 @@ export default class Scron {
             this.params[key].original = this.formatSplit[this.params[key].index] || null;
             switch(this.params[key].type){
                 case 'range':
-                    this.params[key].default = this.getIntRange(this.params[key].strRange);
                     this.params[key].value = this.getRange(this.formatSplit[this.params[key].index], this.params[key].default);
                     break;
                 case 'date':
@@ -440,7 +802,7 @@ export default class Scron {
         }
 
         // Run the validate now
-        this.validateResult = this.validate();
+        this.validateResult = this.validateFormula();
     }
 
 
@@ -552,7 +914,7 @@ export default class Scron {
                         let weekNames = spec_dayofweek.value.map((item, index, arr) => {
                             return this.DAYS[item][0];
                         })
-                        result += `weeks ${this.concatenateStringList(weekNames)}`;
+                        result += `weekdays ${this.concatenateStringList(weekNames)}`;
                     }
                 }
 
@@ -670,7 +1032,7 @@ export default class Scron {
     // Returns an error message if it is not valid containing the invalid parameters.
     // There is room to make this validate a lot more precise however a short term solution
     // is just to redirect the user to the documentation for now.
-    validate(){
+    validateFormula(){
         let errorArray = [];
 
         // Build the millisecond regex

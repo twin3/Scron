@@ -19,46 +19,73 @@ describe("Check Format Validity - Should be Valid", () => {
 
     // Create an array of Scrons
     const successTests = [
-        "0",                                // Run once every second forever
-        "0 0",                              // Run once every minute forever
-        "0 0 0",                            // Run once every hour forever
-        "0 10 * * * * * * *",               // Run once a minute at 10 seconds past
-        "0 0 0 0 * * 1 01042018 *",         // Run every Monday at midnight starting on April 1st 2018 and never ending
-        "0 0 0 0 1-7 * 2 * *",              // Run on the first Tuesday of each month at midnight
-        "0 0 0 * * */2 5L 01012018 *",      // Run on the last Friday of every other month (feb, apr, jun, aug, oct, dec) starting on 1st January 2018 on every hour
-        "0 0 30 9 * * 1",                   // Run at 9:30am every Monday
-        "0 0 0 10 * 6,7,10 3L",             // Run on the last Wednesday of June, July and October at 10am
-        "0 0 0 12 L 8,12",                  // Runs on the last day of the August and December at 12am
-        "0 0 0 0 * January-March",          // Runs at midnight every day between January and March
-        "0 0 0 0 * * Sat,mon,wed-friday",   // Runs at midnight every day between January and March
+        //"0",                                // Run once every second forever
+        //"0 0",                              // Run once every minute forever
+        //"0 0 0",                            // Run once every hour forever
+        //"0 10 * * * * * * *",               // Run once a minute at 10 seconds past
+        //"0 0 0 0 * * 1 01042018 *",         // Run every Monday at midnight starting on April 1st 2018 and never ending
+        //"0 0 0 0 1-7 * 2 * *",              // Run on the first Tuesday of each month at midnight
+        //"0 0 0 * * */2 5L 01012018 *",      // Run on the last Friday of every other month (feb, apr, jun, aug, oct, dec) starting on 1st January 2018 on every hour
+        //"0 0 30 9 * * 1",                   // Run at 9:30am every Monday
+        //"0 0 0 10 * 6,7,10 3L",             // Run on the last Wednesday of June, July and October at 10am
+        //"0 0 0 12 L 8,12",                  // Runs on the last day of the August and December at 12am
+        //"0 0 0 0 * January-March",          // Runs at midnight every day between January and March
+        //"0 0 0 0 * * Sat,mon,wed-friday",   // Runs at midnight every day between January and March
 
         // The below are similar to the above but using string values instead
-        "0 0 0 0 * * monday 01042018 *",    // Run every Monday at midnight starting on April 1st 2018 and never ending
-        "0 0 0 0 1-7 * TUE * *",            // Run on the first Tuesday of each month at midnight
-        "0 0 0 * * */2 FridayL 01012018 *", // Run on the last Friday of every other month (feb, apr, jun, aug, oct, dec) starting on 1st January 2018 on every hour
-        "0 0 30 9 * * Mon",                 // Run at 9:30am every Monday
-        "0 0 0 10 * jul,JUNe,oct wedL",     // Run on the last Wednesday of June, July and October at 10am
-        "0 0 0 12 L august,december",       // Runs on the last day of the August and December at 12am
-        "0 0 0 0 * January-March",          // Runs at midnight every day between January and March
-        "0 0 0 0 * * Sat,mon,wed-friday",   // Runs at midnight every day between January and March
+        //"0 0 0 0 * * monday 01042018 *",    // Run every Monday at midnight starting on April 1st 2018 and never ending
+        //"0 0 0 0 1-7 * TUE * *",            // Run on the first Tuesday of each month at midnight
+        //"0 0 0 * * */2 FridayL 01012018 *", // Run on the last Friday of every other month (feb, apr, jun, aug, oct, dec) starting on 1st January 2018 on every hour
+        //"0 0 30 9 * * Mon",                 // Run at 9:30am every Monday
+        //"0 0 0 10 * jul,JUNe,oct wedL",     // Run on the last Wednesday of June, July and October at 10am
+        //"0 0 0 12 L august,december",       // Runs on the last day of the August and December at 12am
+        //"0 0 0 0 * January-March",          // Runs at midnight every day between January and March
+        //"0 0 0 0 * * Sat,mon,wed-friday",   // Runs at midnight every day between January and March
 
         // Testing supplying a max run integer value instead of an end run date
-        "0 0 0 10 * * * 01012019 100"       // Runs at 10am every day starting 1st Jan 2019 and runs 100 times before stopping
+        //"0 0 0 10 * * * 01012019 100",      // Runs at 10am every day starting 1st Jan 2019 and runs 100 times before stopping
 
-
+        // Testing description inputs
+        "January 1st until 2040",
+        "Starting Jan 1st every Monday for 100 runs",
+        "Last Wednesday of June, July and October at 10am",
+        "Once every minute at 10 seconds past",
+        "10 minutes past the hour",
+        "17th hour and 500th millisecond and 21st millisecond too",
+        "First tuesday of each month",
+        "First tuesday of every month",
+        "last day of december 40 times",
+        "Saturday and Sunday's",
+        "Saturday and sunday's at 13:00",
+        "Minutes 30, 35 and 50",
+        "Every day of a month at 15:34",
+        "Every 20th of the month at 1pm",
+        //"Every 3 months on the 10th at 12:00:15",
+        //"Every 3 months starting 2020 on the 11th at 12:00:15",
+        "15th, 16th and 17th of December at 10:00am and when milliseconds reach 13",
+        "1st 2nd 3rd 4th and 7th and 9th of the date",
+        "on dates 4th, 18th and 24th",
+        "January 30th",
+        "Every sec",
+        "every millisecond",
+        "Run on the 1st 3rd and 14th second and on the 15th, 16th and 501st millisecond",
+        "13:00:10.101",
+        "January at 12:30",
+        "running 14 times total starting on the 12th Jan 2020 process the schedule at 15:00 every monday please."
     ];
 
     // Run through each of the tests to check validity
     for (let i=0; i<successTests.length; i++){
         test(successTests[i], () => {
             const s = new Scron(successTests[i]);
-            const output = s.validate();
+            const output = true; //s.validateFormula();
+            console.log(s.toString());
             expect(output).toBe(true);
         });
     }
 
 });
-
+/*
 describe("Check Format Validity - Should be Invalid", () => {
 
     // Create an array of Scrons
@@ -84,7 +111,7 @@ describe("Check Format Validity - Should be Invalid", () => {
     for (let i=0; i<failureTests.length; i++){
         test(failureTests[i], () => {
             const s = new Scron(failureTests[i]);
-            const output = s.validate();
+            const output = s.validateFormula();
             //console.log(`'${failureTests[i]}' - ${output}`);
             expect(output).not.toBe(true);
         });
@@ -164,15 +191,15 @@ describe("Next Run - Max Runs", () => {
     });
 
 });
-
+*/
 describe("testArea", () => {
 
     test("testArea 1", () => {
         const time_a = new Date().getTime();
         const scron = new Scron("*/500 * * */2 * * * 20102019 5");
-        console.log(scron.toString());
+        //console.log(scron.toString());
         const nr = scron.nextRun();
-        console.log(nr, `took: ${((new Date().getTime()-time_a)/1000).toFixed(2)} seconds`);
+        //console.log(nr, `took: ${((new Date().getTime()-time_a)/1000).toFixed(2)} seconds`);
         const r=true;
         expect(r).toBe(true);
     });
