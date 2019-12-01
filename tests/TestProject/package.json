@@ -1,0 +1,16 @@
+{
+  "name": "com.twin3.scrontestproj",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node --experimental-modules index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Neil Palethorpe <neil.palethorpe@twin3.co.uk> (https://twin3.co.uk)",
+  "license": "ISC",
+  "dependencies": {
+    "@twin3/scron": "^1.0.4"
+  }
+}
