@@ -32,6 +32,7 @@ export default class Scron {
     
     // Create a new Scron
     constructor(formatString){
+        this.MAX_SETINTERVAL_VALUE = 2147483647;
         this.MONTHS = [
             ["January","Jan"],
             ["February","Feb"],
@@ -67,9 +68,17 @@ export default class Scron {
             en:"ET",    // End Time
             mr:"MR"     // Max Runs
         }
+        
+        // States to express where we're at when you decide to use the run() functionality
+        // This state is returned on each callback so we know if we can re-call again.
+        this.RunStates = {
+            Running:1,
+            Finished:2,
+            Error:3,
+        }
+
         this.update(formatString || "");
-    }    
-    
+    }   
 
     // Convert a date string in the format of ddmmyyyy into an actual date
     // object which we can use
@@ -251,10 +260,10 @@ export default class Scron {
                             }
                         }
                         while(currStep<=stepMaxVal){
-                            currStep += stepAmount;
                             if (currStep<=stepMaxVal){
                                 additions.push(currStep);
                             }
+                            currStep += stepAmount;
                         }
 
                     } else if (rng.endsWith("L")){
@@ -324,7 +333,7 @@ export default class Scron {
             "ff": _date.getMilliseconds()>99 ? _date.getMilliseconds().toString() : ("000"+_date.getMilliseconds()).slice(-2),
             "f": _date.getMilliseconds()
         }
-
+        
         // Loop through each char of the format string and break it up into sections of chars
         let section = "";
         let splitFormat = [];
@@ -437,6 +446,12 @@ export default class Scron {
                 default:
                     // No known type on this param?
             }
+        }
+
+        // We can't have both end date and max run but its difficult to limit it up there ^^ so lets check to see if we
+        // have an end date as that one is easier to determine, if we do then we'll set maxrun to null
+        if (!!this.params[this.KEY.en].value){
+            this.params[this.KEY.mr].value = null;
         }
 
         // Run the validate now
@@ -794,7 +809,7 @@ export default class Scron {
 
             // Work out when we want to start counting from and when we're happy to stop
             //const _startFromDate = !!maxRuns && (!!start && start.getTime()<new Date()) ? start : fromDate ? new Date(new Date(fromDate).getTime()+1) : new Date();
-            const _startFromDate = fromDate ? new Date(new Date(fromDate).getTime()+1) : !!start ? start : new Date();
+            const _startFromDate = fromDate ? new Date(new Date(fromDate).getTime()+1) : !!start&&!!maxRuns ? start : !!start&&(new Date(start)>new Date()) ? start : new Date();
             const _endAfterDate = !maxRuns ? new Date(_startFromDate) : new Date();
             
             // Create some pre-set responses for the isRunnable function
@@ -815,10 +830,9 @@ export default class Scron {
                     return res;
 
                 } else {
-                    //console.log(date, (date >= _endAfterDate && (!_startFromDate || date >= _startFromDate) && (!end || date <= end)));
                     
-                    //console.log(date >= _endAfterDate && (!_startFromDate || date >= _startFromDate) && (!end || date <= end));
                     return (date >= _endAfterDate && (!_startFromDate || date >= _startFromDate) && (!end || date <= end)) ? RUNNABLE_RESULT.RUNNABLE : RUNNABLE_RESULT.NOT;
+
                 }
             }
 
@@ -827,15 +841,16 @@ export default class Scron {
             // Hopefully it won't take too long to calculate out.
             let nextSchedule = null;
             let calcTime;
+            
             loop_year:
-            for(let y=_startFromDate.getUTCFullYear(); y<(!!end?end.getUTCFullYear():(_startFromDate.getUTCFullYear()+10)); y++){
-                calcTime = new Date(_startFromDate); //new Date(!!start&&start>_startFromDate?start:_startFromDate);
+            for(let y=_startFromDate.getUTCFullYear(); y<=(!!end?end.getUTCFullYear():(_startFromDate.getUTCFullYear()+10)); y++){
+                calcTime = new Date(_startFromDate);
                 calcTime.setUTCFullYear(y);
                 
                 if (isRunnable(calcTime)!==RUNNABLE_RESULT.NOT){
                     loop_month:
                     for(let mo=0; mo<month.length; mo++){
-                        calcTime = new Date(_startFromDate); //new Date(!!start&&start>_startFromDate?start:_startFromDate);
+                        calcTime = new Date(_startFromDate);
                         calcTime.setUTCDate(1); 
                         calcTime.setUTCMonth(month[mo]-1);
                         calcTime.setUTCFullYear(y);
@@ -921,9 +936,113 @@ export default class Scron {
             }
             
         } catch(e){
+
             console.log(e);
-            return null;
+            return e;
+            
         }
+    }
+
+    // Function to trigger a callback at the time of the specified scron
+    // NOTE - any scron being used here cannot have a start date more than about
+    // 18 days from now, nor can there being any intervals of time greater than
+    // this during the schedule as this equates to a wait period greater than a 32bit
+    // integer can hold so it'll crash setInterval! - todo; look for alternative to setInterval!?
+    /*
+        {
+            callback, -- Function to call on complete
+            synchronous -- If true we'll call the callback and await a response before continuing
+            startDate -- specify a start date that you want your timings to run from - 
+        }
+    */
+    run(params){
+        const callback = params.callback;
+        const run_synchronous = params.synchronous===true;
+        let start_date = params.startDate ? new Date(params.startDate).getTime() : null;
+        let next_run = null;
+
+        // If we have a startDate specified then we'll use this to delay our running
+        setTimeout(() => {
+            
+            // Inner function to rerun the function
+            const onReRun = () => {
+                this.run({
+                    ...params,
+                    startDate:null
+                }); 
+            }
+
+            // Inner function to return on complete
+            const onComplete = (state, error) => {
+                
+                // Build our return object
+                let returnObj = {
+                    state: state,
+                    run: run_synchronous===true ? onReRun : null
+                }
+
+                // Add error ir we have one
+                if (error){
+                    returnObj.error = error;
+                }
+
+                // Call the callback now
+                callback(returnObj);
+
+                // If we're not running synchronously then we can recall the run now presuming we're
+                // also in a runnable state (based on the last calculated next_run date)
+                if (run_synchronous!==true && state===this.RunStates.Running){
+                    onReRun();
+                }
+                
+            }
+
+            // Begin the process by calculating the delay
+            next_run = this.nextRun();
+
+            // Check the next run time is valid - if so we'll setup the timeout to wait
+            // before calling the callback at the appropriate time
+            if (next_run){
+                
+                // Check if the next run time is a date value
+                if (!(next_run instanceof Date)) {
+                    
+                    // Not a date value which means its likely an error message!
+                    onComplete(this.RunStates.Error, next_run);
+
+                } else if (next_run.getTime()>(new Date().getTime()+this.MAX_SETINTERVAL_VALUE)){
+                    
+                    // The next run time cannot be too far into the future - setTimeout can only accespt 32bit integer so
+                    // if we go too high (or too far into the future) then the int will be too great for it to handle.
+                    onComplete(this.RunStates.Error, `Start date too far in the future. Please select a date less than ${Scron.toDateFormat(new Date(new Date().getTime()+this.MAX_SETINTERVAL_VALUE), "dddd dd^ MMMM yyyy HH:mm:ss:fff")}`);
+    
+                } else {
+                    
+                    // Calculate the ms delay between the starting date and now - we'll ignore anything that is now in the past
+                    // this is a little bit of a debatable conditional but occasionally I was finding the run going through so quick
+                    // it was producing the same run time only the latter was in the past by the time it got here...
+                    const msDelay = next_run-new Date().getTime();
+                    if (msDelay>-1){
+                        setTimeout(() => {
+                            onComplete(this.RunStates.Running);
+                        }, msDelay);
+                    } else {
+                        onReRun();
+                    }
+
+                }
+
+            } else {
+                
+                // No next run value was found so we've most likely hit the end of the
+                // possible date range specified in the Scron - or we ran into an error
+                // but we're not currently supporting that just here yet (todo)
+                onComplete(this.RunStates.Finished);
+
+            }
+            
+        }, start_date ? Math.max(0, new Date(start_date).getTime()-new Date().getTime()) : 0);
+        
     }
 
 }
