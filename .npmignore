@@ -6,3 +6,6 @@ tests
 # Ignore the unminified version of the code - this will only be used
 # for development purposes and can be got from the GitHub page :)
 libs/scron.js
+
+# Ignore the workspace file
+*.code-workspace
