@@ -1,6 +1,6 @@
 {
     "name": "@twin3/scron",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "description": "Scron is a simple light-weight JS library providing Cron-like scheduling date prediction and run-now capabilities.",
     "main": "libs/scron.min.js",
     "type": "module",

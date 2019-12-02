@@ -11,6 +11,6 @@
   "author": "Neil Palethorpe <neil.palethorpe@twin3.co.uk> (https://twin3.co.uk)",
   "license": "ISC",
   "dependencies": {
-    "@twin3/scron": "^1.0.4"
+    "@twin3/scron": "^1.0.5"
   }
 }
