@@ -10,6 +10,11 @@ Scron is a light-weight JavaScript library providing scheduling functionality fo
 If you're looking for help with this library either integrating into your own project or are looking for assistance in understanding how to write a Scron formula, then please jump over to the [Wiki](https://github.com/twin3/Scron/wiki) which we are continuously improving to provide the best help we can achieve.
   
   
+## Install
+You can install Scron using npm with:
+`npm install --save @twin3/scron`
+
+  
 ## Bugs + Feedback
 If you experience any bugs, have any questions or suggestions, then please raise a new [Github Issue](https://github.com/twin3/Scron/issues).  
   
