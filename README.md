@@ -4,16 +4,31 @@
 </p>
   
   
-Scron is a light-weight JavaScript library providing scheduling functionality for calculating next run times and user-friendly description outputs based on an easy to write formula modelled on the Unix Cron system.
+Scron is a light-weight JavaScript library providing scheduling functionality for calculating next run times, providing user-friendly next run descriptions, and run now callback functionality.
+- [x] Replace your existing giant schedule capture form full of calendars and time inputs (each with their own annoying set of validation rules) with a single input field.
+- [x] User friendly [Wiki](https://github.com/twin3/Scron/wiki) you can direct your users to in order to help them easily understand how to become a Scron pro
+- [x] Run on your websites, servers or JS-based applications (needs to be ES6 compatible one way or another)
+- [x] No additional dependencies! The project is entirely self contained!
   
   
 If you're looking for help with this library either integrating into your own project or are looking for assistance in understanding how to write a Scron formula, then please jump over to the [Wiki](https://github.com/twin3/Scron/wiki) which we are continuously improving to provide the best help we can achieve.
   
   
 ## Install
-You can install Scron using npm with:
+You can install Scron in your project using npm:  
 `npm install --save @twin3/scron`
-
+  
+  
+## Best Bits
+- [x] Easy to enter formula (and very familiar for Cron users!)
+- [x] Supports months and days of the week to be entered as words instead of integers (eg- "Monday" or "Mon")
+- [x] Get the next run time as a Javascript Date object
+- [x] Get the next run time as a user friendly description
+- [x] Run now functionality directly in your Javascript
+- [x] Supports milliseconds, seconds, minutes, hours, day of the month, month, day of the week, start date, end date and max run limits.
+- [x] The package uses no additional dependencies, everything is within a single class making it more slimline and easier to maintain
+- [x] Wiki written to help developers integrate and users use.
+  
   
 ## Bugs + Feedback
 If you experience any bugs, have any questions or suggestions, then please raise a new [Github Issue](https://github.com/twin3/Scron/issues).  
