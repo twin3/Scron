@@ -15,11 +15,6 @@ Scron is a light-weight JavaScript library providing scheduling functionality fo
 If you're looking for help with this library either integrating into your own project or are looking for assistance in understanding how to write a Scron formula, then please jump over to the [Wiki](https://github.com/twin3/Scron/wiki) which we are continuously improving to provide the best help we can achieve.
   
   
-## Install
-You can install Scron in your project using npm:  
-`npm install --save @twin3/scron`
-  
-  
 ## Best Bits
 - [x] Easy to enter formula (and very familiar for Cron users!)
 - [x] Supports months and days of the week to be entered as words instead of integers (eg- "Monday" or "Mon")
@@ -30,6 +25,13 @@ You can install Scron in your project using npm:
 - [x] The package uses no additional dependencies, everything is within a single class making it more slimline and easier to maintain
 - [x] Wiki written to help developers integrate and users use.
 - [x] Built in date-to-string formatter
+  
+  
+## How To Use/Install
+If you're looking to implement into your project you can either grab a copy of the minified or unminified JS class from the lib folder to include in your project, or you can use npm to install in your project using:  
+`npm install --save @twin3/scron`  
+  
+If you're an end-user looking to understand how to write a Scron for entering into a system utilising Scron then you can jump over to the [Wiki](https://github.com/twin3/Scron/wiki) to learn the basics. The Wiki is continuously being updated but if you feel something doesn't quite make sense or you've found a statement that is incorrect or outdated please let us know by raising an issue or help us out by correcting yourself!
   
   
 ## Bugs + Feedback
