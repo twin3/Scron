@@ -9,6 +9,7 @@ Scron is a light-weight JavaScript library providing scheduling functionality fo
 - [x] User friendly [Wiki](https://github.com/twin3/Scron/wiki) you can direct your users to in order to help them easily understand how to become a Scron pro
 - [x] Run on your websites, servers or JS-based applications (needs to be ES6 compatible one way or another)
 - [x] No additional dependencies! The project is entirely self contained!
+- [x] Can be used just for its date-formatting functionality!
   
   
 If you're looking for help with this library either integrating into your own project or are looking for assistance in understanding how to write a Scron formula, then please jump over to the [Wiki](https://github.com/twin3/Scron/wiki) which we are continuously improving to provide the best help we can achieve.
@@ -28,6 +29,7 @@ You can install Scron in your project using npm:
 - [x] Supports milliseconds, seconds, minutes, hours, day of the month, month, day of the week, start date, end date and max run limits.
 - [x] The package uses no additional dependencies, everything is within a single class making it more slimline and easier to maintain
 - [x] Wiki written to help developers integrate and users use.
+- [x] Built in date-to-string formatter
   
   
 ## Bugs + Feedback
