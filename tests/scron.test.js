@@ -101,7 +101,7 @@ describe("Next Run Matches Expected", () => {
         expect(nr.getTime()).toBe(new Date(`${nextRunYear}-06-10T09:30:00.000Z`).getTime());
     });
 
-    test(`Runs on the last day of the August and December at 12am starting 20th September ${nextRunYear}`, () => {
+    test(`Runs on the last day of August and December at 12am starting 20th September ${nextRunYear}`, () => {
         const s = new Scron(`0 0 0 12 L 8,12 * 2009${nextRunYear}`);
         let nr = s.nextRun();
         expect(nr.getTime()).toBe(new Date(`${nextRunYear}-12-31T12:00:00.000Z`).getTime());
@@ -169,7 +169,7 @@ describe("testArea", () => {
 
     test("testArea 1", () => {
         const time_a = new Date().getTime();
-        const scron = new Scron("*/500 * * */2 * * * 20102019 5");
+        const scron = new Scron("0 * 42-43 23 * * * 01122019");
         console.log(scron.toString());
         const nr = scron.nextRun();
         console.log(nr, `took: ${((new Date().getTime()-time_a)/1000).toFixed(2)} seconds`);

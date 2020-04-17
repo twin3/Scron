@@ -1,7 +1,7 @@
 {
     "name": "@twin3/scron",
-    "version": "1.0.5",
-    "description": "Scron is a simple light-weight JS library providing Cron-like scheduling date prediction and run-now capabilities.",
+    "version": "1.0.7",
+    "description": "JS ES6 library providing Cron-like scheduling date prediction, formatting and run-now capabilities.",
     "main": "libs/scron.min.js",
     "type": "module",
     "repository": {
@@ -22,7 +22,17 @@
         "Neil Palethorpe <neil.palethorpe@twin3.co.uk> (https://twin3.co.uk)"
     ],
     "keywords": [
-      "scron","cron"
+        "scron",
+        "cron",
+        "javscript",
+        "js",
+        "es6",
+        "date",
+        "time",
+        "format",
+        "run now",
+        "prediction",
+        "date prediction"
     ],
     "license": "MIT",
     "devDependencies": {
