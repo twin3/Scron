@@ -28,7 +28,7 @@
     write a Scron formula, this can be found at: https://github.com/twin3/Scron/wiki
 
 */
-export default class Scron {
+class Scron {
     
     // Create a new Scron
     constructor(formatString){
@@ -1046,3 +1046,4 @@ export default class Scron {
     }
 
 }
+module.exports = Scron;
