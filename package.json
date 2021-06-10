@@ -1,6 +1,6 @@
 {
     "name": "@twin3/scron",
-    "version": "1.0.9",
+    "version": "1.0.10",
     "description": "JS ES6 library providing Cron-like scheduling date prediction, formatting and run-now capabilities.",
     "main": "libs/scron.min.js",
     "repository": {
@@ -14,7 +14,7 @@
     "scripts": {
         "test": "jest",
         "minify": "uglifyjs ./libs/scron.js -c -m -o ./libs/scron.min.js",
-        "publish-npm": "npm run test; npm run minify; npm publish --access public"
+        "publish-npm": "npm run minify; npm publish --access public"
     },
     "author": "Neil Palethorpe <neil.palethorpe@twin3.co.uk> (https://twin3.co.uk)",
     "contributors": [
