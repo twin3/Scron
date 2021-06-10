@@ -165,16 +165,16 @@ describe("Next Run - Max Runs", () => {
 
 });
 
-describe("testArea", () => {
+// describe("testArea", () => {
 
-    test("testArea 1", () => {
-        const time_a = new Date().getTime();
-        const scron = new Scron("0 * 42-43 23 * * * 01122019");
-        console.log(scron.toString());
-        const nr = scron.nextRun();
-        console.log(nr, `took: ${((new Date().getTime()-time_a)/1000).toFixed(2)} seconds`);
-        const r=true;
-        expect(r).toBe(true);
-    });
+//     test("testArea 1", () => {
+//         const time_a = new Date().getTime();
+//         const scron = new Scron("0 * 42-43 23 * * * 01122019");
+//         console.log(scron.toString());
+//         const nr = scron.nextRun();
+//         console.log(nr, `took: ${((new Date().getTime()-time_a)/1000).toFixed(2)} seconds`);
+//         const r=true;
+//         expect(r).toBe(true);
+//     });
 
-})
+// })
